@@ -1,0 +1,121 @@
+# Streamlit Sigma.js Component
+
+A streamlit component to visualize network graph data.
+
+Combines Python, Streamlit, Vue3 and Sigma.js.
+
+## Key Features
+
+- Visualize network data
+- Interact with the graph
+- Display additional nodes & edges attributes
+
+(screenshot)
+
+# Installation
+
+## Manual pip installation
+
+Create and activate a python virtual environment (venv, conda, ...)
+
+Clone this repository
+
+```bash
+git clone https://github.com/camaris2/streamlit_sigmajs_component.git
+```
+
+Navigate to root directory
+
+```bash
+cd streamlit_sigmajs_component
+```
+
+Install the package in editable mode:
+
+```bash
+pip install -e .
+```
+
+## pip installation
+
+Coming soon.
+
+# Using the component
+
+In your streamlit app:
+- import the module: 
+
+> from vsigma_component import vsigma_component
+
+- call the component
+
+> graph_state = vsigma_component(my_nodes, my_edges, my_settings, key="vsigma")
+
+
+## Example
+
+run the streamlit example app:
+
+```bash
+cd streamlit_sigmajs_component
+streamlit run example.py
+```
+
+# Development
+
+- Ensure you have Python 3.7+, Node.js, and npm installed.
+- Clone this repository
+- Navigate to root directory
+
+## Python Setup
+
+Create and activate a virtual environment, then install the package in editable mode:
+
+```bash
+python3 -m venv .venv
+source ./venv/bin/activate # On Windows use `.\venv\Scripts\activate`
+pip install -e .
+```
+
+## Node Setup
+
+Navigate to the frontend directory and install the necessary npm packages:
+
+```bash
+cd vsigma_component/vue_sigma
+npm install
+```
+
+## Running the App
+
+Change PRODUCTION flag in vsigma_component/__init__.py to False
+
+- In one terminal start the frontend dev server
+
+```bash
+cd vsigma_component/vue_sigma
+npm run start
+```
+
+- In another terminal run the streamlit server
+
+```bash
+source ./venv/bin/activate # On Windows use `.\venv\Scripts\activate`
+cd vsigma_component
+streamlit run example.py
+```
+
+# Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+
+# License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+# Acknowledgments
+
+- [Sigma.js](https://www.sigmajs.org/)
+- [Streamlit](https://www.streamlit.io/)
+- [Vue3](https://vuejs.org/)
+- [Python](https://www.python.org/)
