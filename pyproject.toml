@@ -1,0 +1,19 @@
+[project]
+name = "streamlit_sigmajs_component"
+version = "0.0.2"
+authors = [
+  { name="camaris", email="pypi@camaris.be" },
+]
+description = "A streamlit component to visualize network graph data using Sigma.js"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/cmaris2/streamlit_sigmajs_component"
+Issues = "https://github.com/camaris2/streamlit_sigmajs_component/issues"
