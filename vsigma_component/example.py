@@ -9,7 +9,7 @@ st.set_page_config(
 
 def filter_atttributes(d):
   # filter out some system attributes
-  return {k:v for k,v in d.items() if k not in ['x', 'y', 'type', 'size', 'color', 'image', 'hidden', 'forceLabel', 'zIndex']} # , 'label']}
+  return {k:v for k,v in d.items() if k not in ['x', 'y', 'size', 'color', 'hidden', 'forceLabel', 'zIndex']} # , 'label', 'image']}
 
 list_nodes_html = '--'
 def list_nodes(state):
@@ -36,7 +36,8 @@ my_nodes = [
         "attributes": {
           "otype": "Person",
           "color": "red",
-          "status": "active"
+          "status": "active",
+          "image": "https://icons.getbootstrap.com/assets/icons/person.svg",
         }
       },
       {
@@ -44,7 +45,8 @@ my_nodes = [
         "attributes": {
           "otype": "Person",
           "color": "blue",
-          "status": "on pension"
+          "status": "on pension",
+          "image": "https://icons.getbootstrap.com/assets/icons/person.svg",
         }
       },
       {
@@ -52,15 +54,17 @@ my_nodes = [
         "attributes": {
           "otype": "Person",
           "color": "black",
-          "status": "deceased"
+          "status": "deceased",
+          "image": "https://icons.getbootstrap.com/assets/icons/person.svg",
         }
       },
       {
-        "key": "Lulu",
+        "key": "Lulu3",
         "attributes": {
           "otype": "Animal",
-          "color": "white",
-          "status": "active"
+          "color": "gray",
+          "status": "active",
+          "image": "https://icons.getbootstrap.com/assets/icons/person.svg",
         }
       }
     ]
@@ -73,7 +77,7 @@ my_edges = [
         "target": "Gunther",
         "attributes": {
           "otype": "Person-Person relation",
-          "label": "Colleague"
+          "label": "Colleague",
         }
       },
       {
@@ -82,7 +86,7 @@ my_edges = [
         "target": "Jake",
         "attributes": {
           "otype": "Person-Person relation",
-          "label": "Colleague"
+          "label": "Colleague",
         }
       },
       {
@@ -91,16 +95,16 @@ my_edges = [
         "target": "Jake",
         "attributes": {
           "otype": "Person-Person relation",
-          "label": "Colleague"
+          "label": "Colleague",
         }
       },
       {
         "key": "R004",
         "source": "Marie",
-        "target": "Lulu",
+        "target": "Lulu3",
         "attributes": {
           "otype": "Person-Animal relation",
-          "label": "Pet"
+          "label": "Pet",
         }
       }
     ]

@@ -1,6 +1,6 @@
 [project]
 name = "streamlit_sigmajs_component"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="camaris", email="pypi@camaris.be" },
 ]
@@ -11,8 +11,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-license = "MIT"
-license-files = ["LICEN[CS]E*"]
+license = {file = "LICENSE"}
 
 [project.urls]
 Homepage = "https://github.com/cmaris2/streamlit_sigmajs_component"
