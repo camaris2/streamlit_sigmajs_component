@@ -38,7 +38,7 @@ pip install -e .
 
 ## pip installation
 
-Coming soon.
+pip install streamlit-sigmajs-component
 
 # Using the component
 
@@ -51,13 +51,14 @@ In your streamlit app:
 
 > graph_state = vsigma_component(my_nodes, my_edges, my_settings, key="vsigma")
 
+- (optional) use the date returned via the graph state object (e.g. selected node or edge, ...) 
 
 ## Example
 
 run the streamlit example app:
 
 ```bash
-cd streamlit_sigmajs_component
+cd vsigma_component
 streamlit run example.py
 ```
 
@@ -72,7 +73,7 @@ streamlit run example.py
 Create and activate a virtual environment, then install the package in editable mode:
 
 ```bash
-python3 -m venv .venv
+python3 -m venv venv
 source ./venv/bin/activate # On Windows use `.\venv\Scripts\activate`
 pip install -e .
 ```
@@ -94,7 +95,7 @@ Change PRODUCTION flag in vsigma_component/__init__.py to False
 
 ```bash
 cd vsigma_component/vue_sigma
-npm run start
+npm run dev
 ```
 
 - In another terminal run the streamlit server
