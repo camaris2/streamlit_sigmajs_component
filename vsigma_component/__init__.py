@@ -1,7 +1,7 @@
 import os
 import streamlit.components.v1 as components
 
-PRODUCTION = False
+PRODUCTION = True
 
 if not PRODUCTION:
     print('** DEV MODE **')
