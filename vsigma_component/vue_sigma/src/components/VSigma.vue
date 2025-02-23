@@ -286,46 +286,44 @@
       if(log_debug_info) { console.log("leaveNode") }
       setHoveredNode(undefined)
     })
-    // const handleUp = () => {
-    //   // On mouse up, we reset the dragging mode
-    //   // if (draggedNode) {
-    //   //   graph.removeNodeAttribute(draggedNode, "highlighted");
-    //   // }
-    //   isDragging = false;
-    //   draggedNode = null;
-    // };
-    // render.on("upNode", handleUp);
-    // render.on("upStage", handleUp);
+    const handleUp = () => {
+      // On mouse up, we reset the dragging mode
+      if (draggedNode) {
+        graph.removeNodeAttribute(draggedNode, "highlighted");
+      }
+      isDragging = false;
+      draggedNode = null;
+    };
+    render.on("upNode", handleUp);
+    render.on("upStage", handleUp);
 
     render.on("downNode", (event) => {
       if(log_debug_info) { console.log("downNode", event.node) }
-      // // On mouse down on a node
-      // //  - we enable the drag mode
-      // //  - save in the dragged node in the state
-      // //  - highlight the node
-      // //  - disable the camera so its state is not updated
-      // // renderer.on("downNode", (e) => {
-      // isDragging = true;
-      // draggedNode = event.node;
-      // // graph.setNodeAttribute(draggedNode, "highlighted", true);
-      // // if (!render.getCustomBBox()) render.setCustomBBox(render.getBBox());
+      // On mouse down on a node
+      //  - we enable the drag mode
+      //  - save in the dragged node in the state
+      //  - highlight the node
+      //  - disable the camera so its state is not updated
+      // renderer.on("downNode", (e) => {
+      isDragging = true;
+      draggedNode = event.node;
+      graph.setNodeAttribute(draggedNode, "highlighted", true);
+      if (!render.getCustomBBox()) render.setCustomBBox(render.getBBox());
     })
     render.on("moveBody", (event) => {
       // if(log_debug_info) { console.log("moveBody", event) } // every mouse move
-      // // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
-      // if (!isDragging || !draggedNode) return;
-      // // // Get new position of node - NOK, not working
-      // // const pos = render.viewportToGraph(event);
-      // // if(log_debug_info) { console.log("moveEvent", event) } // every mouse move
-      // // if(log_debug_info) { console.log("movePos", pos) } // every mouse move
-      // // // graph.setNodeAttribute(draggedNode, "x", pos.x);
-      // // // graph.setNodeAttribute(draggedNode, "y", pos.y);  
-      // // graph.setNodeAttribute(draggedNode, "x", event.x);
-      // // graph.setNodeAttribute(draggedNode, "y", event.y);  
-      // // // Prevent sigma to move camera:
-      // // event.preventSigmaDefault();
-      // // event.original.preventDefault();
-      // // event.original.stopPropagation();
+      // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
+      if (!isDragging || !draggedNode) return;
+      // Get new position of node - NOK, not working
+      const pos = render.viewportToGraph({ x: event.event.x, y: event.event.y });
+      if(log_debug_info) { console.log("moveEvent", event) } // every mouse move
+      if(log_debug_info) { console.log("movePos", pos) } // every mouse move
+      graph.setNodeAttribute(draggedNode, "x", pos.x);
+      graph.setNodeAttribute(draggedNode, "y", pos.y);  
+      // Prevent sigma to move camera:
+      event.preventSigmaDefault();
+      event.original.preventDefault();
+      event.original.stopPropagation();
     })
     render.on("clickNode", (event) => {
       if(log_debug_info) { console.log("clickNode", event.node) }
@@ -334,7 +332,7 @@
       state.lastselectedEdge = null
       state.lastselectedEdgeData = null
       state.hoveredNeighbors = graph.neighbors(event.node) // new Set(graph.neighbors(node))
-      if(log_debug_info) { console.log("-> State:", state) }
+      if(log_debug_info) { console.log("Changed State:", state) }
     })
 
     // Edges
@@ -353,7 +351,7 @@
       state.lastselectedNode = null
       state.lastselectedNodeData = null
       state.hoveredNeighbors = null
-      if(log_debug_info) { console.log("-> State:", state) }
+      if(log_debug_info) { console.log("Changed State:", state) }
     })
 
     // Stage (is the overall container of the graph)
