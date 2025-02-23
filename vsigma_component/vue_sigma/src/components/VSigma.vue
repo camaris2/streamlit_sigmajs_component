@@ -43,7 +43,7 @@
   const props = defineProps(['args'])
 
   let fa2Layout = null
-  let log_debug_info = true
+  let log_debug_info = false
 
   const graph = new Graph({ multi: true })
 
