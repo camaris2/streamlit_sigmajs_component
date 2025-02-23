@@ -1,6 +1,6 @@
 [project]
 name = "streamlit_sigmajs_component"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="camaris", email="pypi@camaris.be" },
 ]
