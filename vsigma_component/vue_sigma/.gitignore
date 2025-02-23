@@ -30,5 +30,5 @@ coverage
 *.tsbuildinfo
 
 # Custom
-src/
+# src/
 .vscode
