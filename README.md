@@ -14,7 +14,11 @@ Combines Python, Streamlit, Vue3 and Sigma.js.
 
 # Installation
 
-## Manual pip installation
+## pip installation
+
+pip install streamlit-sigmajs-component
+
+## manual installation from source
 
 Create and activate a python virtual environment (venv, conda, ...)
 
@@ -35,10 +39,6 @@ Install the package in editable mode:
 ```bash
 pip install -e .
 ```
-
-## pip installation
-
-pip install streamlit-sigmajs-component
 
 # Using the component
 

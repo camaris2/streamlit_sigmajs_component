@@ -132,10 +132,10 @@ with open('style.css') as f:
 ss.sigmaid = 0
 filters_flag = st.toggle("Use Filters", False)
 
-col_nfilter, col_efilters = st.columns([1,1], gap="small")
+col_efilters, col_nfilters = st.columns([1,1], gap="small")
 if filters_flag:
-    ss.node_filters = col_nfilter.pills("Node filters (be carefull for inconsistency with edge filter):", options=["Person", "Animal"], default=["Person", "Animal"], key="nodepills", selection_mode="multi")
     ss.edge_filters = col_efilters.pills("Edge filters:", options=["Person-Person", "Person-Animal"], default=["Person-Person", "Person-Animal"], key="edgepills", selection_mode="multi")
+    ss.node_filters = col_nfilters.pills("Node filters (be carefull for inconsistency with edge filter):", options=["Person", "Animal"], default=["Person", "Animal"], key="nodepills", selection_mode="multi")
     ss.sigmaid = len(ss.node_filters)*100 + len(ss.edge_filters)
     if ss.sigmaid > 0:
       my_filtered_nodes = [n for n in my_nodes if n['attributes']['nodetype'] in ss.node_filters]
