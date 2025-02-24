@@ -162,20 +162,23 @@ with col_details:
                   table_div = ''.join([f'<tr><td class="mca_key">{k}</td><td class="mca_value">{v}</td></tr>' for k,v in graph_state['state'].get('lastselectedNodeData', '').items() if k not in ss.hidden_attributes])
                   table_div = '<table>'+table_div+'</table>'
                   st.markdown(f'<div class="card"><p class="mca_node">{graph_state["state"].get("lastselectedNode","")} (node)<br></p><div class="container">{table_div}</p></div><div class="mca_value">Linked to: {", ".join(graph_state["state"].get("hoveredNeighbors","[]"))}</div></div>', unsafe_allow_html = True)
-                  if st.button("List all", key="list_all"):
-                      html = list_nodes(graph_state["state"])
-                      st.markdown(f'<div class="mca_value">{html}</div>', unsafe_allow_html = True)
               if type(graph_state['state'].get('lastselectedEdgeData','')) == dict:
                   table_div = ''.join([f'<tr><td class="mca_key">{k}</td><td class="mca_value">{v}</td></tr>' for k,v in graph_state['state'].get('lastselectedEdgeData', '').items() if k not in ss.hidden_attributes])
                   table_div = '<table>'+table_div+'</table>'
                   st.markdown(f'<div class="card"><p class="mca_node">{graph_state["state"].get("lastselectedEdge","")} (edge)<br></p><div class="container">{table_div}</p></div></div>', unsafe_allow_html = True)
-                  if st.button("List all", key="list_all"):
-                      html = list_edges(graph_state["state"])
-                      st.markdown(f'<div class="mca_value">{html}</div>', unsafe_allow_html = True)
+
+if 'state' in graph_state:
+    if type(graph_state['state'].get('lastselectedNodeData','')) == dict:
+        if st.button("List all nodes of this type.", key="list_all"):
+            html = list_nodes(graph_state["state"])
+            st.markdown(f'<div class="mca_value">{html}</div><br>', unsafe_allow_html = True)
+    if type(graph_state['state'].get('lastselectedEdgeData','')) == dict:
+        if st.button("List all edges of this type.", key="list_all"):
+            html = list_edges(graph_state["state"])
+            st.markdown(f'<div class="mca_value">{html}</div><br>', unsafe_allow_html = True)
+
 
 with st.expander("Details graph state (debug)"):
+    st.write(f"vsigma id: {ss.sigmaid}")
     st.write(f'Type: {str(type(graph_state))}')
     st.write(graph_state)
-    st.write("vsigma"+str(ss.sigmaid))
-    st.write(my_filtered_nodes)
-    st.write(my_filtered_edges)
