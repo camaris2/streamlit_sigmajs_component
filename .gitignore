@@ -175,3 +175,4 @@ pack*.json
 node_modules/*
 README_dev.md
 /dist/
+local_data.py

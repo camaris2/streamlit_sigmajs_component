@@ -3,21 +3,21 @@ import streamlit.components.v1 as components
 
 PRODUCTION = True
 
-if not PRODUCTION:
-    print('** DEV MODE **')
-    _c = components.declare_component(
-        # DEV: points to local dev server
-        "vsigma_component",
-        url="http://localhost:5173",
-    )
-else:
+if PRODUCTION:
     # PRODUCTION: points to component build directory:
-    print('** PRO MODE **')
+    print(f'** PRO MODE ** (PRO={PRODUCTION})')
     parent_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(parent_dir, "vue_sigma/dist")
     _c = components.declare_component(
         "vsigma_component",
         path=build_dir
+    )
+else:
+    print(f'** DEV MODE ** (PRO={PRODUCTION})')
+    _c = components.declare_component(
+        # DEV: points to local dev server
+        "vsigma_component",
+        url="http://localhost:5173",
     )
 
 # wrapper function

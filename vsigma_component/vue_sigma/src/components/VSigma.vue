@@ -16,8 +16,8 @@
     <div class="selected">{{ state.hoveredNode }} {{ state.hoveredNodeLabel }}{{ state.hoveredEdge }} {{ state.hoveredEdgeLabel }}&nbsp;</div>
     <div id="sigma-container"></div>
     <div class="feedback">
-      <button v-if="log_debug_info" @click="toggleDisplay('info01')">i</button>
-      <div v-if="log_debug_info" class="debuginfo" id="info01">
+      <button v-if=log_debug_info @click="toggleDisplay('info01')">i</button>
+      <div v-if=log_debug_info class="debuginfo" id="info01">
         <div>Selected Node: {{ state.lastselectedNode }} : {{ state.lastselectedNodeData }}</div>
         <div>Selected Edge: {{ state.lastselectedEdge }} : {{ state.lastselectedEdgeData }}</div>
         <hr/>
