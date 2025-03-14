@@ -60,7 +60,7 @@ if localdata:
     my_edges = testdata['edges']
     kind_of_edges_filters=testdata['edge_filters']
     my_settings = testdata['settings']
-if testdata:
+elif testdata:
     my_nodes = testdata['nodes']
     kind_of_nodes_filters=testdata['node_filters']
     my_edges = testdata['edges']

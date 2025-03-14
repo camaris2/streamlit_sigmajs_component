@@ -322,7 +322,7 @@
       graph.setNodeAttribute(draggedNode, "y", pos.y);  
       // Prevent sigma to move camera:
       event.preventSigmaDefault();
-      event.original.preventDefault();
+      // event.original.preventDefault();
       event.original.stopPropagation();
     })
     render.on("clickNode", (event) => {
