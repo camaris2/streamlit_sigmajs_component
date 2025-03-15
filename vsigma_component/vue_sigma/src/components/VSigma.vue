@@ -174,7 +174,7 @@
       .nodes()
       .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
       .join("\n");
-    console.log(graph)
+      if(log_debug_info) { console.log(graph) }
     // Actions:
     function setSearchQuery(query) {
       state.searchQuery = query;

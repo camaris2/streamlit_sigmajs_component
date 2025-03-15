@@ -40,10 +40,10 @@ graph_state = {} # holds the VSigma internal state data
 list_nodes_html = '--'
 def list_nodes(state):
     data = graph_state["state"].get('lastselectedNodeData', {})
-    print('data: ', data)
-    print('nodes: ', my_nodes)
+    # print('data: ', data)
+    # print('nodes: ', my_nodes)
     list_nodes_html = ', '.join([n['key'] for n in my_nodes if n['attributes']['nodetype']==data['nodetype']])
-    print('res:', list_nodes_html)
+    # print('res:', list_nodes_html)
     return list_nodes_html
 list_edges_html = '--'
 def list_edges(state):
