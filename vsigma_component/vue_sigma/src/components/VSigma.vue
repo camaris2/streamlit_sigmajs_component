@@ -323,7 +323,7 @@
       // Prevent sigma to move camera:
       event.preventSigmaDefault();
       // event.original.preventDefault();
-      event.original.stopPropagation();
+      // event.original.stopPropagation();
     })
     render.on("clickNode", (event) => {
       if(log_debug_info) { console.log("clickNode", event.node) }
