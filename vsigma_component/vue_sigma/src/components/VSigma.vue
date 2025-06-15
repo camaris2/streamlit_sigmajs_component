@@ -134,6 +134,11 @@
 
     let sigma_settings = {
       allowInvalidContainer: true,
+
+      // Settings:
+      // https://github.com/jacomyal/sigma.js/blob/13062dc5be4f876d7c188411b120bb5a3a0be6f4/packages/sigma/src/settings.ts
+
+      renderLabels: true,
       enableEdgeEvents: true,
       renderEdgeLabels: true,
 

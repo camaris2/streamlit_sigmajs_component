@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Stlite App</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/style.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/stlite.js";
+      mount(
+  {
+    requirements: ["streamlit-sigmajs-component==0.0.7"], // Packages to install
+    entrypoint: "streamlit_app.py", // The target file of the `streamlit run` command
+    files: {
+      "streamlit_app.py": `
+import json
+import streamlit as st
+from vsigma_component import vsigma_component
+
+import pyodide.http
+url = "http://localhost:8000/streamlit_lite/test_data.json"
+response = await pyodide.http.pyfetch(url)
+# data_in_bytes = await response.bytes()
+response_text = await response.text()
+
+testdata = json.loads(response_text.replace("'",'"'))
+
+# Default settings
+
+DEBUG = True
+ENABLE_FILTERS = True
+
+# Streamlit App Settings
+
+st.set_page_config(
+    layout = 'wide',
+    page_title = 'Network Viz'
+)
+
+# State Variables
+
+ss = st.session_state
+ss.sigmaid = 0
+ss.hidden_attributes = [] # ['x', 'y', 'type', 'size', 'color', 'image', 'hidden', 'forceLabel', 'zIndex', 'index'] # label, highlighted
+
+try:
+    # Variables
+
+    graph_state = {} # holds the VSigma internal state data
+
+    # Helper Functions
+
+    list_nodes_html = '--'
+    def list_nodes(state):
+        data = graph_state["state"].get('lastselectedNodeData', {})
+        print('data: ', data)
+        print('nodes: ', my_nodes)
+        list_nodes_html = ', '.join([n['key'] for n in my_nodes if n['attributes']['nodetype']==data['nodetype']])
+        print('res:', list_nodes_html)
+        return list_nodes_html
+    list_edges_html = '--'
+    def list_edges(state):
+        data = graph_state["state"].get('lastselectedEdgeData', {})
+        list_edges_html = ', '.join([n['key'] for n in my_edges if n['attributes']['edgetype']==data['edgetype']])
+        return list_edges_html
+
+    # Load data
+
+    my_nodes = testdata['nodes']
+    kind_of_nodes_filters=testdata['node_filters']
+    my_edges = testdata['edges']
+    kind_of_edges_filters=testdata['edge_filters']
+    my_settings = testdata['settings']
+
+    # PAGE LAYOUT
+
+    st.subheader("VSigma Component Demo App")
+    st.markdown("This is a VSigma component. It is a simple component that displays graph network data. It is a good example of how to use the VSigma component.")
+    # with open('style.css') as f:
+    #     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html = True)
+
+    if ENABLE_FILTERS:
+      # TODO: handle consistency and remove unlinked nodes
+      filters_flag = st.toggle("Use Filters", False)
+      col_efilters, col_nfilters = st.columns([1,1], gap="small")
+      if filters_flag:
+          # ss.edge_filters = col_efilters.pills("Edge filters:", options=kind_of_edges_filters, default=kind_of_edges_filters, key="edgefilters", selection_mode="multi")
+          # ss.node_filters = col_nfilters.pills("Node filters (be carefull for inconsistency with edge filter):", options=kind_of_nodes_filters, default=kind_of_nodes_filters, key="nodefilters", selection_mode="multi")
+          ss.edge_filters = col_efilters.multiselect("Edge filters:", options=kind_of_edges_filters, default=kind_of_edges_filters, key="edgefilters")
+          ss.node_filters = col_nfilters.multiselect("Node filters (be carefull for inconsistency with edge filter):", options=kind_of_nodes_filters, default=kind_of_nodes_filters, key="nodefilters")
+          ss.sigmaid = len(ss.node_filters)*100 + len(ss.edge_filters)
+          if ss.sigmaid > 0:
+            my_filtered_nodes = [n for n in my_nodes if n['attributes']['nodetype'] in ss.node_filters]
+            my_filtered_edges = [e for e in my_edges if e['attributes']['edgetype'] in ss.edge_filters]
+          else:
+              my_filtered_nodes = my_nodes
+              my_filtered_edges = my_edges
+      else:
+          my_filtered_nodes = my_nodes
+          my_filtered_edges = my_edges
+          ss.sigmaid = 0
+
+    # Graph and details
+    col_graph, col_details = st.columns([2,1], gap="small")
+
+    with col_graph:
+        graph_state = vsigma_component(my_filtered_nodes, my_filtered_edges, my_settings, key="vsigma"+str(ss.sigmaid)) # add key to avoid reinit
+
+    with col_details:
+
+        tab1, tab2, tab3 = st.tabs(["Details", "Filters", "Settings"])
+
+        with tab1:
+          if graph_state:
+              if 'state' in graph_state:
+                  data = {}
+                  label = ""
+                  gtype = ""
+                  if type(graph_state['state'].get('lastselectedNodeData','')) == dict:
+                      data ={k:v for k,v in graph_state['state'].get('lastselectedNodeData', '').items() if k not in ss.hidden_attributes}
+                      label = graph_state["state"].get("lastselectedNode","")
+                      gtype = "node"
+                  if type(graph_state['state'].get('lastselectedEdgeData','')) == dict:
+                      data ={k:v for k,v in graph_state['state'].get('lastselectedEdgeData', '').items() if k not in ss.hidden_attributes}
+                      label = graph_state["state"].get("lastselectedEdge","")
+                      gtype = "edge"
+
+                  table_div = ''.join([
+                      f'<tr><td class="mca_key">{k}</td><td class="mca_value">{v}</td></tr>'
+                      for k,v in data.items()
+                  ])
+                  table_div = '<table>'+table_div+'</table>'
+                  if len(gtype) > 0:
+                      st.markdown(f'''
+                          <div class="card">
+                            <p class="mca_node">{label} ({gtype})<br></p>
+                            <div class="container">{table_div}</div>
+                          </div>
+                          ''', unsafe_allow_html = True
+                      )
+
+        with tab2:
+          st.write("Filters:")
+          if 'edge_filters' in ss:
+              st.write("Edge filters:", ss.edge_filters)
+          else:
+              st.write("Edge filters: None")
+          if 'node_filters' in ss:
+              st.write("Node filters:", ss.node_filters)
+          else:
+              st.write("Node filters: None")
+          if 'hidden_attributes' in ss:
+              st.write("Hidden attributes:", ss.hidden_attributes)
+          else:
+              st.write("Hidden attributes: None")
+
+        with tab3:
+          st.write("Base settings:")
+          st.write(my_settings)
+          st.write("Custom settings:")
+          custom_settings = st.text_area(
+              "Custom Settings", 
+              value="", 
+              height=None, 
+              max_chars=None, 
+              key=None, 
+              help=None, 
+              on_change=None, 
+              args=None, 
+              kwargs=None, 
+              placeholder=None, 
+              disabled=False, 
+              label_visibility="visible"
+          )
+          if custom_settings:
+              cs = custom_settings.split('\\n')
+              cs = [s.strip() for s in cs]
+              cs_list = []
+              for setting in cs:
+                  cs_split = setting.split(".")
+                  if len(cs_split)==3:
+                      cs_list.append(cs_split)
+              st.write(cs_list)
+
+    if 'state' in graph_state:
+        if type(graph_state['state'].get('lastselectedNodeData','')) == dict:
+            if st.button("List all nodes of this type.", key="list_all"):
+                html = list_nodes(graph_state["state"])
+                st.markdown(f'<div class="mca_value">{html}</div><br>', unsafe_allow_html = True)
+        if type(graph_state['state'].get('lastselectedEdgeData','')) == dict:
+            if st.button("List all edges of this type.", key="list_all"):
+                html = list_edges(graph_state["state"])
+                st.markdown(f'<div class="mca_value">{html}</div><br>', unsafe_allow_html = True)
+
+    # Debug information
+
+    if DEBUG:
+      with st.expander("Details graph state (debug)"):
+          st.write(f"vsigma id: {ss.sigmaid}")
+          st.write(f'Type: {str(type(graph_state))}')
+          st.write(graph_state)
+      with st.expander("Details graph data"):
+          st.write(response_text)
+except Exception as e:
+    st.write(f"Error: {e}")
+
+
+`,
+    },
+    streamlitConfig: {
+      // Streamlit configuration
+      "client.toolbarMode": "viewer",
+    },
+  },
+  document.getElementById("root"),
+);
+    </script>
+  </body>
+</html>

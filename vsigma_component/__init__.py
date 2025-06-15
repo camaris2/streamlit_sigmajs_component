@@ -41,4 +41,4 @@ def vsigma_component(nodes, edges, settings, key=None):
         frontend.)
     """
     result = _c(nodes=nodes, edges=edges, settings=settings, key=key, default={})
-    return result
+    return result, _c

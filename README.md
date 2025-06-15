@@ -51,7 +51,7 @@ In your streamlit app:
 
 > graph_state = vsigma_component(my_nodes, my_edges, my_settings, key="vsigma")
 
-- (optional) use the date returned via the graph state object (e.g. selected node or edge, ...) 
+- (optional) use the data returned via the graph state object (e.g. selected node or edge, ...) 
 
 ## Run Example App
 
@@ -104,7 +104,8 @@ npm run dev
 - In another terminal run the streamlit server
 
 ```bash
-source ./venv/bin/activate # On Windows use `.\venv\Scripts\activate`
+source ./venv/bin/activate  # Unix
+.\venv\Scripts\activate  # Windows
 cd vsigma_component
 streamlit run example.py
 ```
