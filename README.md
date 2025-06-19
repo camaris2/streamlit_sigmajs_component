@@ -55,7 +55,14 @@ In your streamlit app:
 
 ## Run Example App
 
-run the streamlit example app:
+- create the environment
+    - pip install virtualenv (if you don't already have virtualenv installed)
+    - virtualenv venv to create your new environment (called 'venv' here)
+    - source venv/bin/activate to enter the virtual environment (unix)
+    - venv/bin/activate to enter the virtual environment (windows)
+
+pip install -r requirements.txt to install the requirements in the current environment
+- run the streamlit example app:
 
 ```bash
 cd streamlit_sigmajs_component/vsigma_component
@@ -90,7 +97,7 @@ cd vsigma_component/vue_sigma
 npm install
 ```
 
-## Running the App
+## Running the App (in development mode)
 
 Change PRODUCTION flag in vsigma_component/__init__.py to False
 

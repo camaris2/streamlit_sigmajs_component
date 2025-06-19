@@ -1,6 +1,9 @@
 <template>
   <div class="graph">
-    <div class="feedback">{{ state.nnodes }} Nodes - {{ state.nedges }} Edges</div>
+    <div class="feedback">
+      {{ state.nnodes }} Nodes - {{ state.nedges }} Edges
+      <button id="refresh">⭮</button>
+    </div>
     <div>
       <button id="start">arrange</button>
       <button id="stop">stop</button>
@@ -157,6 +160,7 @@
     const startBtn = document.getElementById("start");
     const stopBtn = document.getElementById("stop");
     const resetBtn = document.getElementById("reset");
+    const refreshBtn = document.getElementById("refresh");
     startBtn.addEventListener("click", () => {
       fa2Layout.start();
     });
@@ -165,6 +169,10 @@
     });
     resetBtn.addEventListener("click", () => {
       if (fa2Layout.isRunning) fa2Layout.stop();
+      circlepack.assign(graph);
+      render.refresh();
+    });
+    refreshBtn.addEventListener("click", () => {
       circlepack.assign(graph);
       render.refresh();
     });
