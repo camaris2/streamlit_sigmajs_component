@@ -1,8 +1,8 @@
 <template>
   <div class="graph">
-    <div class="feedback">
+    <div class="networkinfo">
       {{ state.nnodes }} Nodes - {{ state.nedges }} Edges
-      <button id="sync2st">S</button>
+      <button id="sync2st">Save</button>
       <button id="refresh">⭮</button>
     </div>
     <div>
@@ -19,15 +19,6 @@
     </div>
     <div class="selected">{{ state.hoveredNode }} {{ state.hoveredNodeLabel }}{{ state.hoveredEdge }} {{ state.hoveredEdgeLabel }}&nbsp;</div>
     <div id="sigma-container"></div>
-    <div class="feedback">
-      <button v-if=log_debug_info @click="toggleDisplay('info01')">i</button>
-      <div v-if=log_debug_info class="debuginfo" id="info01">
-        <div>Selected Node: {{ state.lastselectedNode }} : {{ state.lastselectedNodeData }}</div>
-        <div>Selected Edge: {{ state.lastselectedEdge }} : {{ state.lastselectedEdgeData }}</div>
-        <hr/>
-        <div>State : {{ state }}</div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -44,7 +35,7 @@
   border: 1px solid #e8e8e8;
   padding: 5px;
 }
-.feedback {
+.networkinfo {
   font-size: x-small;
   float: right;
 }
@@ -61,7 +52,7 @@
 }
 #sigma-container {
   position: relative;
-  height: 400px;
+  height: 600px;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
 }
@@ -135,10 +126,9 @@ button + button {
 
   function syncStreamlit() { 
     if(log_debug_info) { console.log('syncStreamlit') }
-    //update state positions
+    ////update state positions
     // state.positions = collectLayout(graph); // ??? DOES NOT WORK HERE
     if(log_debug_info) { console.log("syncStreamlit, positions:", state.positions) }
-
     // send data from component to Streamlit
     if(log_debug_info) { console.log('syncStreamlit, state:', state) }
     const stateJSON = JSON.parse(JSON.stringify(state)) // removes methods (non-clonable)
@@ -149,16 +139,6 @@ button + button {
         state: stateJSON,
       }
     )
-  }
-
-  function toggleDisplay(id){
-    // var el = event.target
-    var el = document.getElementById(id)
-    if (el.style.visibility == "hidden") {
-      el.style.visibility = "visible"
-    } else {
-      el.style.visibility = "hidden"
-    }
   }
 
   useStreamlit()
@@ -173,9 +153,11 @@ button + button {
     graph.import({'nodes': props.args.nodes, 'edges': props.args.edges}) // dataJson.data)
 
     graph.nodes().forEach((node, i) => {
+      // set default values for node attributes
+      graph.setNodeAttribute(node, "id", node)
       graph.setNodeAttribute(node, "index", i)
-      // graph.setEdgeAttribute(node, "type", "square");
-      // graph.setNodeAttribute(node, "label", node.toString())
+      // graph.setNodeAttribute(node, "type", "square");
+      graph.setNodeAttribute(node, "label", node.toString())
       graph.setNodeAttribute(node, "size", 10)
       // graph.setNodeAttribute(node, "color", "#000000")
     });
@@ -188,26 +170,31 @@ button + button {
       // graph.setEdgeAttribute(edge, "color", "#000000");
     });
 
-    console.log("props.args.positions (on mounted before assign): ", props.args.positions)
-    console.log("state.positions (on mounted before assign): ", state.positions)
+    if(log_debug_info) {
+      console.log("props.args.positions (on mounted before assign): ", props.args.positions)
+      console.log("state.positions (on mounted before assign): ", state.positions)
+    }
 
     if ((props.args.positions) && (Object.keys(props.args.positions).length > 0)) {
       // If positions are provided, we assign them to the graph
-      console.log("Positions provided, assigning them to the graph");
-      console.log("    props.args.positions: ", props.args.positions)
+      if(log_debug_info) {
+        console.log("Positions provided, assigning them to the graph");
+        console.log("    props.args.positions: ", props.args.positions)
+      }
       assignLayout(graph, props.args.positions);
 
     } else {
       // If no positions are provided, we use circlepack layout
-      console.log("No positions provided, using circlepack layout");
+      if(log_debug_info) {
+        console.log("No positions provided, using circlepack layout");
+      }
       circlepack.assign(graph);
     }
 
-    // OLD
+    // // Force Atlas Layout
     // const settings = forceAtlas2.inferSettings(graph);
     // myLayout = new FA2Layout(graph, { settings });
 
-    // NEW
     // Create the spring layout and start it
     myLayout = new ForceSupervisor(graph, { isNodeFixed: (_, attr) => attr.highlighted });
     myLayout.start();
@@ -216,9 +203,10 @@ button + button {
 
     syncStreamlit();
 
-    console.log("props.args.positions (on mounted after assign): ", props.args.positions)
-    console.log("state.positions (on mounted after assign): ", state.positions)
-
+    if(log_debug_info) {
+      console.log("props.args.positions (on mounted after assign): ", props.args.positions)
+      console.log("state.positions (on mounted after assign): ", state.positions)
+    }
     let sigma_settings = {
       allowInvalidContainer: true,
 
@@ -291,7 +279,7 @@ button + button {
         // we consider the user has selected a node through the datalist
         // autocomplete:
         if (suggestions.length === 1 && suggestions[0].label === query) {
-          // console.log(suggestions[0]);
+          if(log_debug_info) { console.log("setSearchQuery, suggestions:", suggestions) }
           state.selectedNode = suggestions[0].id;
           state.lastselectedNode = suggestions[0].id;
           state.lastselectedNodeData = graph.getNodeAttributes(state.lastselectedNode);

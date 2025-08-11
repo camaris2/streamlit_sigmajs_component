@@ -1,7 +1,7 @@
 import os
 import streamlit.components.v1 as components
 
-PRODUCTION = True
+PRODUCTION = True  # Set to True for production mode
 
 if PRODUCTION:
     # PRODUCTION: points to component build directory:

@@ -18,7 +18,7 @@ except:
 
 DEBUG = False
 ENABLE_FILTERS = True
-EXPERIMENTAL_FLAG = False  # Enable experimental features
+EXPERIMENTAL_FLAG = True  # Enable experimental features
 
 # Streamlit App Settings
 
@@ -54,12 +54,22 @@ ss.graph_state = {} # holds the VSigma internal state data
 list_nodes_html = '--'
 def list_nodes(state):
     data = ss.graph_state["state"].get('lastselectedNodeData', {})
-    list_nodes_html = ', '.join([n['key'] for n in ss.my_nodes if n['attributes']['nodetype']==data['nodetype']])
+    list_nodes_html = [
+        n['key'] + ' : ' + ', '.join(
+            [att + '=' + n['attributes'][att] for att in n['attributes']]
+        )
+        for n in ss.my_nodes if n['attributes']['nodetype']==data['nodetype']
+    ]
     return list_nodes_html
 list_edges_html = '--'
 def list_edges(state):
     data = ss.graph_state["state"].get('lastselectedEdgeData', {})
-    list_edges_html = ', '.join([n['key'] for n in ss.my_edges if n['attributes']['edgetype']==data['edgetype']])
+    list_edges_html = [
+        n['key'] + ' : ' + ', '.join(
+            [att + '=' + n['attributes'][att] for att in n['attributes']]
+        )
+        for n in ss.my_edges if n['attributes']['edgetype']==data['edgetype']
+    ]
     return list_edges_html
 
 # Load local or test data
@@ -70,26 +80,12 @@ def load_data():
         ss.my_edges = [e for e in localdata['edges']]
         ss.kind_of_edges_filters = localdata['edge_filters']
         ss.my_settings = localdata['settings']
-
-        if DEBUG:
-            st.write("Local data:")
-            st.write(localdata['nodes'])
-            st.write("Local data loaded.")
-            st.write(ss.my_nodes)
-
-
     elif testdata:
         ss.my_nodes = [n for n in testdata['nodes']]
         ss.kind_of_nodes_filters = testdata['node_filters']
         ss.my_edges = [e for e in testdata['edges']]
         ss.kind_of_edges_filters = testdata['edge_filters']
         ss.my_settings = testdata['settings']
-
-        if DEBUG:
-            st.write("Test data:")
-            st.write(testdata['nodes'])
-            st.write("Test data loaded.")
-            st.write(ss.my_nodes)
     
     ss.my_filtered_nodes = ss.my_nodes
     ss.my_filtered_edges = ss.my_edges
@@ -169,9 +165,9 @@ with open('style.css') as f:
 # Graph and Customize
 
 if EXPERIMENTAL_FLAG:
-    tab_graph, tab_customize, tab_experimental = st.tabs(["Graph", "Customize", "Experimental Features"])
+    tab_graph, tab_filters, tab_customize, tab_experimental = st.tabs(["Graph", "Filters", "Customize", "Experimental Features"])
 else:
-    tab_graph, tab_customize = st.tabs(["Graph", "Customize"])
+    tab_graph, tab_filters, tab_customize = st.tabs(["Graph", "Filters", "Customize"])
 
 if EXPERIMENTAL_FLAG:
     with tab_experimental:
@@ -200,14 +196,13 @@ if EXPERIMENTAL_FLAG:
                 load_data()
                 customize_nodes_edges()
 
-with tab_customize:
+with tab_filters:
 
     left_col, center_col, right_col = st.columns([1,4,1], gap="small")
 
     with center_col:
 
         if ENABLE_FILTERS:
-            st.write("Filter settings:")
             # TODO: handle consistency and remove unlinked nodes
             filters_flag = st.toggle("Use Filters", False)
             if filters_flag:
@@ -218,6 +213,11 @@ with tab_customize:
                 # ss.sigmaid = len(ss.node_filters)*100 + len(ss.edge_filters)
                 ss.my_filtered_nodes = [n for n in ss.my_nodes if n['attributes']['nodetype'] in ss.node_filters]
                 ss.my_filtered_edges = [e for e in ss.my_edges if e['attributes']['edgetype'] in ss.edge_filters]
+
+                if st.button("update graph"):
+                    ss.sigmaid += 1
+                    st.write(f"sigmaid updated to {ss.sigmaid}")
+
         else:
             ss.my_filtered_nodes = ss.my_nodes
             ss.my_filtered_edges = ss.my_edges
@@ -232,6 +232,13 @@ with tab_customize:
                 st.write("Node filters:", ", ".join(ss.node_filters))
             else:
                 st.write("Node filters: None")
+
+
+with tab_customize:
+
+    cust_left_col, cust_center_col, cust_right_col = st.columns([1,4,1], gap="small")
+
+    with cust_center_col:
 
         st.write("Base settings:")
         st.write(ss.my_settings)
@@ -256,8 +263,8 @@ with tab_customize:
                 cs = [s.strip() for s in cs]
                 cs_list = []
                 for setting in cs:
-                    cs_split = setting.split(".")
-                    if len(cs_split)==3:
+                    cs_split = setting.split(":")
+                    if len(cs_split)>1:
                         cs_list.append(cs_split)
                 st.write(cs_list)
 
@@ -308,11 +315,11 @@ if 'state' in ss.graph_state:
     if type(ss.graph_state['state'].get('lastselectedNodeData','')) == dict:
         if st.button("List all nodes of this type.", key="list_all"):
             html = list_nodes(ss.graph_state["state"])
-            st.markdown(f'<div class="mca_value">{html}</div><br>', unsafe_allow_html = True)
+            st.markdown(f'<div class="mca_value">{"<br>".join(html)}</div><br>', unsafe_allow_html = True)
     if type(ss.graph_state['state'].get('lastselectedEdgeData','')) == dict:
         if st.button("List all edges of this type.", key="list_all"):
             html = list_edges(ss.graph_state["state"])
-            st.markdown(f'<div class="mca_value">{html}</div><br>', unsafe_allow_html = True)
+            st.markdown(f'<div class="mca_value">{"<br>".join(html)}</div><br>', unsafe_allow_html = True)
     if 'positions' in ss.graph_state['state']:
         if len(ss.graph_state['state']['positions'])>0:
             ss.positions = ss.graph_state['state']['positions']

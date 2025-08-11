@@ -63,7 +63,7 @@ html, body, [class*="css"] {
     font-family: 'Space Grotesk';
     color: #7f72ef;
     text-align: left;
-    line-height: 0.2;
+    /* line-height: 0.2; */
     padding-top: 10px;
 }
 
