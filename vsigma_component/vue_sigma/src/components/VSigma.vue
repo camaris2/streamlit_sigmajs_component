@@ -1,7 +1,8 @@
 <template>
   <div class="graph">
-    <div class="feedback">
+    <div class="networkinfo">
       {{ state.nnodes }} Nodes - {{ state.nedges }} Edges
+      <button id="sync2st">Save</button>
       <button id="refresh">⭮</button>
     </div>
     <div>
@@ -18,24 +19,56 @@
     </div>
     <div class="selected">{{ state.hoveredNode }} {{ state.hoveredNodeLabel }}{{ state.hoveredEdge }} {{ state.hoveredEdgeLabel }}&nbsp;</div>
     <div id="sigma-container"></div>
-    <div class="feedback">
-      <button v-if=log_debug_info @click="toggleDisplay('info01')">i</button>
-      <div v-if=log_debug_info class="debuginfo" id="info01">
-        <div>Selected Node: {{ state.lastselectedNode }} : {{ state.lastselectedNodeData }}</div>
-        <div>Selected Edge: {{ state.lastselectedEdge }} : {{ state.lastselectedEdgeData }}</div>
-        <hr/>
-        <div>State : {{ state }}</div>
-      </div>
-    </div>
   </div>
 </template>
+
+<style scoped>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
+  margin-top: 0px;
+}
+.graph {
+  background-color: #fefefe;
+  border: 1px solid #e8e8e8;
+  padding: 5px;
+}
+.networkinfo {
+  font-size: x-small;
+  float: right;
+}
+.selected {
+  float: right;
+  font-size: x-small;
+}
+.debuginfo {
+  display: block;
+  visibility: hidden;
+  background-color: coral;
+  color: white;
+  font-size: 10px;
+}
+#sigma-container {
+  position: relative;
+  height: 600px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+}
+button + button {
+  margin-left: 10px;
+}
+</style>
 
 <script setup>
   import { NodePictogramProgram } from "@sigma/node-image";
   // import getNodePictogramProgram from "sigma/rendering/webgl/programs/node.image";
   import Graph from "graphology";
   import { circlepack } from "graphology-layout";
+  import {collectLayout, assignLayout} from 'graphology-layout/utils';
   import FA2Layout from "graphology-layout-forceatlas2/worker";
+  import ForceSupervisor from "graphology-layout-force/worker";
   import forceAtlas2 from "graphology-layout-forceatlas2";
   import Sigma from "sigma";
   import { onMounted, onUnmounted, reactive, ref, watch, computed } from "vue";
@@ -45,7 +78,7 @@
   // Automatically extract props as variables
   const props = defineProps(['args'])
 
-  let fa2Layout = null
+  let myLayout = null
   let log_debug_info = false
 
   const graph = new Graph({ multi: true })
@@ -66,7 +99,10 @@
     hoveredNeighbors: [],
     nnodes: 0,
     nedges: 0,
+    positions: {},
   })
+
+  let feature_flag_keep_hover_hightlighted = ref(true)
 
   //
   // Drag'n'drop feature
@@ -80,30 +116,29 @@
   // detect changes in selected nodes or edges
   const change = computed(() => state?.lastselectedNode + state?.lastselectedEdge)
   watch(change, async () => {
-    if(log_debug_info) { console.log('updated state:', change.value) }
-    syncSreamlit()
+    if(log_debug_info) { 
+      console.log('updated state:', change.value)
+    }
+
+    syncStreamlit();
+
   })
 
-  function syncSreamlit() { 
+  function syncStreamlit() { 
+    if(log_debug_info) { console.log('syncStreamlit') }
+    ////update state positions
+    // state.positions = collectLayout(graph); // ??? DOES NOT WORK HERE
+    if(log_debug_info) { console.log("syncStreamlit, positions:", state.positions) }
     // send data from component to Streamlit
-    if(log_debug_info) { console.log('state:', state) }
+    if(log_debug_info) { console.log('syncStreamlit, state:', state) }
     const stateJSON = JSON.parse(JSON.stringify(state)) // removes methods (non-clonable)
+
     Streamlit.setComponentValue(
       {
         graph: graph,
         state: stateJSON,
       }
     )
-  }
-
-  function toggleDisplay(id){
-    // var el = event.target
-    var el = document.getElementById(id)
-    if (el.style.visibility == "hidden") {
-      el.style.visibility = "visible"
-    } else {
-      el.style.visibility = "hidden"
-    }
   }
 
   useStreamlit()
@@ -113,12 +148,16 @@
     const searchInput = document.getElementById("search-input")
     const searchSuggestions = document.getElementById("suggestions")
 
+    // Initialize the graph with nodes and edges
+    let graph = new Graph({ multi: true })
     graph.import({'nodes': props.args.nodes, 'edges': props.args.edges}) // dataJson.data)
 
     graph.nodes().forEach((node, i) => {
+      // set default values for node attributes
+      graph.setNodeAttribute(node, "id", node)
       graph.setNodeAttribute(node, "index", i)
-      // graph.setEdgeAttribute(node, "type", "square");
-      // graph.setNodeAttribute(node, "label", node.toString())
+      // graph.setNodeAttribute(node, "type", "square");
+      graph.setNodeAttribute(node, "label", node.toString())
       graph.setNodeAttribute(node, "size", 10)
       // graph.setNodeAttribute(node, "color", "#000000")
     });
@@ -131,10 +170,43 @@
       // graph.setEdgeAttribute(edge, "color", "#000000");
     });
 
-    circlepack.assign(graph);
-    const settings = forceAtlas2.inferSettings(graph);
-    fa2Layout = new FA2Layout(graph, { settings });
+    if(log_debug_info) {
+      console.log("props.args.positions (on mounted before assign): ", props.args.positions)
+      console.log("state.positions (on mounted before assign): ", state.positions)
+    }
 
+    if ((props.args.positions) && (Object.keys(props.args.positions).length > 0)) {
+      // If positions are provided, we assign them to the graph
+      if(log_debug_info) {
+        console.log("Positions provided, assigning them to the graph");
+        console.log("    props.args.positions: ", props.args.positions)
+      }
+      assignLayout(graph, props.args.positions);
+
+    } else {
+      // If no positions are provided, we use circlepack layout
+      if(log_debug_info) {
+        console.log("No positions provided, using circlepack layout");
+      }
+      circlepack.assign(graph);
+    }
+
+    // // Force Atlas Layout
+    // const settings = forceAtlas2.inferSettings(graph);
+    // myLayout = new FA2Layout(graph, { settings });
+
+    // Create the spring layout and start it
+    myLayout = new ForceSupervisor(graph, { isNodeFixed: (_, attr) => attr.highlighted });
+    myLayout.start();
+
+    state.positions = collectLayout(graph);
+
+    syncStreamlit();
+
+    if(log_debug_info) {
+      console.log("props.args.positions (on mounted after assign): ", props.args.positions)
+      console.log("state.positions (on mounted after assign): ", state.positions)
+    }
     let sigma_settings = {
       allowInvalidContainer: true,
 
@@ -161,33 +233,37 @@
     const stopBtn = document.getElementById("stop");
     const resetBtn = document.getElementById("reset");
     const refreshBtn = document.getElementById("refresh");
+    const syncBtn = document.getElementById("sync2st");
     startBtn.addEventListener("click", () => {
-      fa2Layout.start();
+      myLayout.start();
     });
     stopBtn.addEventListener("click", () => {
-      if (fa2Layout.isRunning) fa2Layout.stop();
+      if (myLayout.isRunning) myLayout.stop();
     });
     resetBtn.addEventListener("click", () => {
-      if (fa2Layout.isRunning) fa2Layout.stop();
+      if (myLayout.isRunning) myLayout.stop();
       circlepack.assign(graph);
       render.refresh();
     });
+    syncBtn.addEventListener("click", () => {
+      state.positions = collectLayout(graph);
+      if(log_debug_info) { console.log("sync button, positions:", state.positions) }
+      syncStreamlit();
+    });
     refreshBtn.addEventListener("click", () => {
-      circlepack.assign(graph);
-      render.refresh();
+      update_positions();
     });
 
     // Network dimensions
     state.nnodes = graph.nodes().length
     state.nedges = graph.edges().length
-    if(log_debug_info) { console.log('nodes:', state.nnodes, 'edges:', state.nedges) }
 
     // Feed the datalist autocomplete values:
     searchSuggestions.innerHTML = graph
       .nodes()
       .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
       .join("\n");
-      if(log_debug_info) { console.log(graph) }
+
     // Actions:
     function setSearchQuery(query) {
       state.searchQuery = query;
@@ -203,7 +279,7 @@
         // we consider the user has selected a node through the datalist
         // autocomplete:
         if (suggestions.length === 1 && suggestions[0].label === query) {
-          // console.log(suggestions[0]);
+          if(log_debug_info) { console.log("setSearchQuery, suggestions:", suggestions) }
           state.selectedNode = suggestions[0].id;
           state.lastselectedNode = suggestions[0].id;
           state.lastselectedNodeData = graph.getNodeAttributes(state.lastselectedNode);
@@ -258,6 +334,19 @@
 
     }
 
+    function resetHoveredNode() {
+      state.hoveredNode = undefined
+      state.hoveredNodeLabel = undefined
+      state.hoveredEdge = undefined
+      state.hoveredEdgeLabel = undefined
+      state.hoveredNeighbors = undefined
+
+      render.refresh({
+        // We don't touch the graph data so we can skip its reindexation
+        skipIndexation: true,
+      })
+    }
+
     function setHoveredEdge(edge) {
       if (edge) {
         // state.hoveredNode = undefined
@@ -280,6 +369,23 @@
 
     }
 
+    function update_positions() {
+      // if (myLayout.isRunning) myLayout.stop();
+      assignLayout(graph, props.args.positions);
+      state.positions = collectLayout(graph);
+      syncStreamlit();
+      render.refresh();
+    }
+
+    const handleMouseUp = () => {
+      // On mouse up, we reset the dragging mode
+      if (draggedNode) {
+        graph.removeNodeAttribute(draggedNode, "highlighted");
+      }
+      isDragging = false;
+      draggedNode = null;
+    };
+
     // Bind search input interactions:
     searchInput.addEventListener("input", () => {
       setSearchQuery(searchInput.value || "")
@@ -291,24 +397,18 @@
     // Bind graph interactions
 
     // Nodes
+
     render.on("enterNode", (event) => {
       if(log_debug_info) { console.log("enterNode", event.node) }
       setHoveredNode(event)
     })
     render.on("leaveNode", (event) => {
       if(log_debug_info) { console.log("leaveNode") }
-      setHoveredNode(undefined)
-    })
-    const handleUp = () => {
-      // On mouse up, we reset the dragging mode
-      if (draggedNode) {
-        graph.removeNodeAttribute(draggedNode, "highlighted");
+      if (!feature_flag_keep_hover_hightlighted) {
+        setHoveredNode(undefined)
       }
-      isDragging = false;
-      draggedNode = null;
-    };
-    render.on("upNode", handleUp);
-    render.on("upStage", handleUp);
+    })
+    render.on("upNode", handleMouseUp);
 
     render.on("downNode", (event) => {
       if(log_debug_info) { console.log("downNode", event.node) }
@@ -323,6 +423,7 @@
       graph.setNodeAttribute(draggedNode, "highlighted", true);
       if (!render.getCustomBBox()) render.setCustomBBox(render.getBBox());
     })
+
     render.on("moveBody", (event) => {
       // if(log_debug_info) { console.log("moveBody", event) } // every mouse move
       // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
@@ -337,7 +438,13 @@
       event.preventSigmaDefault();
       // event.original.preventDefault();
       // event.original.stopPropagation();
+
+      state.positions = collectLayout(graph);
+      syncStreamlit()
+      syncStreamlit()
+
     })
+
     render.on("clickNode", (event) => {
       if(log_debug_info) { console.log("clickNode", event.node) }
       state.lastselectedNode = event.node
@@ -346,9 +453,15 @@
       state.lastselectedEdgeData = null
       state.hoveredNeighbors = graph.neighbors(event.node) // new Set(graph.neighbors(node))
       if(log_debug_info) { console.log("Changed State:", state) }
+
+      state.positions = collectLayout(graph);
+      syncStreamlit()
+      syncStreamlit()
+
     })
 
     // Edges
+
     render.on("enterEdge", (event) => {
       if(log_debug_info) { console.log("enterEdge", event.edge) }
       setHoveredEdge(event)
@@ -365,17 +478,46 @@
       state.lastselectedNodeData = null
       state.hoveredNeighbors = null
       if(log_debug_info) { console.log("Changed State:", state) }
+
+      state.positions = collectLayout(graph);
+      if(log_debug_info) { console.log("sync click edge, positions:", state.positions) }
+      syncStreamlit()
+      syncStreamlit()
+      if(log_debug_info) { console.log("Synced Streamlit after clickEdge") }
+
     })
 
     // Stage (is the overall container of the graph)
+
     render.on("downStage", (event) => {
       state.lastselectedEdge = null
       state.lastselectedEdgeData = null
       state.lastselectedNode = null
       state.lastselectedNodeData = null
       state.hoveredNeighbors = null
+      if (feature_flag_keep_hover_hightlighted) {
+        resetHoveredNode();
+      }
       if(log_debug_info) { console.log("downStage", event.stage) }
     })
+    render.on("upStage", handleMouseUp);
+
+    render.on("clickStage", (event) => {
+      if(log_debug_info) { console.log("clickStage", event.stage) }
+      resetHoveredNode();
+      state.lastselectedEdge = null
+      state.lastselectedEdgeData = null
+      state.lastselectedNode = null
+      state.lastselectedNodeData = null
+      state.hoveredNeighbors = null
+
+      state.positions = collectLayout(graph);
+      if(log_debug_info) { console.log("sync click stage, positions:", state.positions) }
+      syncStreamlit()
+      syncStreamlit()
+    })
+
+    // Reducers
 
     // Render nodes
     render.setSetting("nodeReducer", (node, data) => {
@@ -452,15 +594,23 @@
           res.color = "#cccccc"
           res.label = ""
         }
-    }
+      }
 
       return res;
     })
+    
+    syncStreamlit()
+
+    render.refresh({
+      // We don't touch the graph data so we can skip its reindexation
+      skipIndexation: true,
+    })
+
   })
 
   onUnmounted(() => {
-    if (fa2Layout) {
-      fa2Layout.kill()
+    if (myLayout) {
+      myLayout.kill()
       render.kill()
     }
   })
@@ -471,42 +621,3 @@
   })
 
 </script>
-
-<style scoped>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
-  margin-top: 0px;
-}
-.graph {
-  background-color: #fefefe;
-  border: 1px solid #e8e8e8;
-  padding: 5px;
-}
-.feedback {
-  font-size: x-small;
-  float: right;
-}
-.selected {
-  float: right;
-  font-size: x-small;
-}
-.debuginfo {
-  display: block;
-  visibility: hidden;
-  background-color: coral;
-  color: white;
-  font-size: 10px;
-}
-#sigma-container {
-  position: relative;
-  height: 400px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-}
-button + button {
-  margin-left: 10px;
-}
-</style>

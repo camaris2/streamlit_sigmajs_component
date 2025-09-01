@@ -45,7 +45,7 @@ testdata = {
                 "label": "Lulu",
                 "color": "gray",
                 "status": "active",
-                "image": "https://icons.getbootstrap.com/assets/icons/person.svg",
+                "image": "https://icons.getbootstrap.com/assets/icons/gitlab.svg",
             }
         }
     ],

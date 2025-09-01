@@ -30,6 +30,8 @@ import {
 
 import { Streamlit, type RenderData } from "streamlit-component-lib"
 
+const log_debug_info = false // Set to true to enable debug logging
+
 export default defineComponent({
   name: "WithStreamlitConnection",
   setup() {
@@ -40,6 +42,13 @@ export default defineComponent({
       const renderEvent = event as CustomEvent<RenderData>
       renderData.value = renderEvent.detail
       componentError.value = ""
+
+      if (log_debug_info) {
+        console.debug(
+          `     RENDER_EVENT event: ${JSON.stringify(renderEvent.detail)}`
+        )
+      }
+
     }
 
     // Set up event listeners, and signal to Streamlit that we're ready.

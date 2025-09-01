@@ -1,7 +1,7 @@
 import os
 import streamlit.components.v1 as components
 
-PRODUCTION = True
+PRODUCTION = True  # Set to True for production mode
 
 if PRODUCTION:
     # PRODUCTION: points to component build directory:
@@ -21,7 +21,7 @@ else:
     )
 
 # wrapper function
-def vsigma_component(nodes, edges, settings, key=None):
+def vsigma_component(nodes, edges, settings, positions={}, key=None):
     """Create a new instance of "vsigma_component".
 
     Parameters
@@ -40,5 +40,5 @@ def vsigma_component(nodes, edges, settings, key=None):
         (This is the value passed to `Streamlit.setComponentValue` on the
         frontend.)
     """
-    result = _c(nodes=nodes, edges=edges, settings=settings, key=key, default={})
+    result = _c(nodes=nodes, edges=edges, settings=settings, positions=positions,key=key, default={})
     return result, _c

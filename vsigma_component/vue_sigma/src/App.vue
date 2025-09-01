@@ -1,9 +1,7 @@
 <template>
-  <div id="app">
-    <WithStreamlitConnection v-slot="{ args }">
-      <VSigma :args="args" />
-    </WithStreamlitConnection>
-  </div>
+  <WithStreamlitConnection v-slot="{ args }">
+    <VSigma :args="args" />
+  </WithStreamlitConnection>
 </template>
 
 <script lang="ts">
