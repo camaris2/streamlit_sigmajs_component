@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setuptools.setup(
     name="streamlit-sigmajs-component",
-    version="1.0.1",
+    version="1.0.2",
     author="camaris",
     author_email="streamlit@camaris.be",
     description="Streamlit component to visualize network graph data using Sigma.js.",

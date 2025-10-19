@@ -2,13 +2,15 @@
   <div class="graph">
     <div class="networkinfo">
       {{ state.nnodes }} Nodes - {{ state.nedges }} Edges
-      <button id="sync2st">Save</button>
-      <button id="refresh">⭮</button>
+      <!-- <button id="save">💾</button> -->
+      <!-- <button id="load">Load</button>
+      <button id="refresh">⭮</button> -->
     </div>
     <div>
-      <button id="start">arrange</button>
-      <button id="stop">stop</button>
-      <button id="reset">reset</button>&nbsp;
+      <button id="start">▶</button>
+      <button id="stop">⏹</button>
+      <button id="save">💾</button>
+      <button id="reset">⭮</button>&nbsp;
       <span id="search">
       <input type="search" id="search-input" list="suggestions" placeholder="Search node...">
       <datalist id="suggestions">
@@ -71,7 +73,7 @@ button + button {
   import ForceSupervisor from "graphology-layout-force/worker";
   import forceAtlas2 from "graphology-layout-forceatlas2";
   import Sigma from "sigma";
-  import { onMounted, onUnmounted, reactive, ref, watch, computed } from "vue";
+  import { onMounted, onUnmounted, reactive, ref, watch , computed } from "vue";
   import { Streamlit } from 'streamlit-component-lib'
   import { useStreamlit } from '../streamlit'
 
@@ -80,6 +82,9 @@ button + button {
 
   let myLayout = null
   let log_debug_info = false
+  let deep_debug = true
+
+  let refreshCounter = ref(0)
 
   const graph = new Graph({ multi: true })
 
@@ -115,17 +120,18 @@ button + button {
 
   // detect changes in selected nodes or edges
   const change = computed(() => state?.lastselectedNode + state?.lastselectedEdge)
-  watch(change, async () => {
-    if(log_debug_info) { 
-      console.log('updated state:', change.value)
+  watch (change, async () => {
+    if(deep_debug) { 
+      console.log('updated state:', change.value, refreshCounter.value)
     }
 
     syncStreamlit();
 
-  })
+  }, { immediate: false, flush: 'post'}
+  )
 
   function syncStreamlit() { 
-    if(log_debug_info) { console.log('syncStreamlit') }
+    if(deep_debug) { console.log('syncStreamlit') }
     ////update state positions
     // state.positions = collectLayout(graph); // ??? DOES NOT WORK HERE
     if(log_debug_info) { console.log("syncStreamlit, positions:", state.positions) }
@@ -232,27 +238,41 @@ button + button {
     const startBtn = document.getElementById("start");
     const stopBtn = document.getElementById("stop");
     const resetBtn = document.getElementById("reset");
-    const refreshBtn = document.getElementById("refresh");
-    const syncBtn = document.getElementById("sync2st");
+    // const refreshBtn = document.getElementById("refresh");
+    const saveBtn = document.getElementById("save");
+    // const loadBtn = document.getElementById("load");
     startBtn.addEventListener("click", () => {
+      if(log_debug_info) { console.log("arrange positions") }
       myLayout.start();
     });
     stopBtn.addEventListener("click", () => {
+      if(deep_debug) { console.log("stop") }
       if (myLayout.isRunning) myLayout.stop();
+      state.positions = collectLayout(graph);
+      syncStreamlit();
     });
     resetBtn.addEventListener("click", () => {
+      if(deep_debug) { console.log("reset positions") }
       if (myLayout.isRunning) myLayout.stop();
       circlepack.assign(graph);
       render.refresh();
-    });
-    syncBtn.addEventListener("click", () => {
-      state.positions = collectLayout(graph);
-      if(log_debug_info) { console.log("sync button, positions:", state.positions) }
       syncStreamlit();
     });
-    refreshBtn.addEventListener("click", () => {
-      update_positions();
+    saveBtn.addEventListener("click", () => {
+      if(deep_debug) { console.log("save positions") }
+      if (myLayout.isRunning) myLayout.stop();
+      state.positions = collectLayout(graph);
+      syncStreamlit();
     });
+    // loadBtn.addEventListener("click", () => {
+    //   if(log_debug_info) { console.log("load positions") }
+    //   assignLayout(graph, props.args.positions);
+    //   // state.positions = collectLayout(graph);
+    //   syncStreamlit();
+    // });
+    // refreshBtn.addEventListener("click", () => {
+    //   update_positions();
+    // });
 
     // Network dimensions
     state.nnodes = graph.nodes().length
@@ -384,6 +404,10 @@ button + button {
       }
       isDragging = false;
       draggedNode = null;
+
+      state.positions = collectLayout(graph);
+      syncStreamlit()
+      
     };
 
     // Bind search input interactions:
@@ -440,8 +464,7 @@ button + button {
       // event.original.stopPropagation();
 
       state.positions = collectLayout(graph);
-      syncStreamlit()
-      syncStreamlit()
+      // syncStreamlit()  // disables, to many calls
 
     })
 
@@ -455,7 +478,6 @@ button + button {
       if(log_debug_info) { console.log("Changed State:", state) }
 
       state.positions = collectLayout(graph);
-      syncStreamlit()
       syncStreamlit()
 
     })
@@ -481,7 +503,6 @@ button + button {
 
       state.positions = collectLayout(graph);
       if(log_debug_info) { console.log("sync click edge, positions:", state.positions) }
-      syncStreamlit()
       syncStreamlit()
       if(log_debug_info) { console.log("Synced Streamlit after clickEdge") }
 
@@ -513,7 +534,6 @@ button + button {
 
       state.positions = collectLayout(graph);
       if(log_debug_info) { console.log("sync click stage, positions:", state.positions) }
-      syncStreamlit()
       syncStreamlit()
     })
 

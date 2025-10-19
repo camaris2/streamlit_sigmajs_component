@@ -3,22 +3,21 @@ import random
 import streamlit as st
 from vsigma_component import vsigma_component
 
-# 'local data' or fallback 'test data' imports
-
-try:
-    from test_data import testdata
-except:
-    testdata = None
-try:
-    from local_data import localdata
-except:
-    localdata = None
 
 # Default settings
 
 DEBUG = False
 ENABLE_FILTERS = True
 EXPERIMENTAL_FLAG = True  # Enable experimental features
+PROFILE = False  # Enable profiling
+
+import cProfile
+import pstats
+from io import StringIO
+pr = cProfile.Profile()
+if PROFILE:
+    print("Start profiling...")
+    pr.enable()
 
 # Streamlit App Settings
 
@@ -47,6 +46,17 @@ if 'draw_count' not in ss:
 if "positions" not in ss:
     ss.positions = {}
 
+if "node_filters" not in ss:
+    if "kind_of_nodes_filters" in ss:
+        ss.node_filters = ss.kind_of_nodes_filters
+    else:
+        ss.node_filters = []
+if "edge_filters" not in ss:
+    if "kind_of_edges_filters" in ss:
+        ss.edge_filters = ss.kind_of_edges_filters
+    else:
+        ss.edge_filters = []
+
 ss.graph_state = {} # holds the VSigma internal state data
 
 # Helper Functions
@@ -72,43 +82,31 @@ def list_edges(state):
     ]
     return list_edges_html
 
-# Load local or test data
-def load_data():
-    if localdata:
-        ss.my_nodes = [n for n in localdata['nodes']]
-        ss.kind_of_nodes_filters = localdata['node_filters']
-        ss.my_edges = [e for e in localdata['edges']]
-        ss.kind_of_edges_filters = localdata['edge_filters']
-        ss.my_settings = localdata['settings']
-    elif testdata:
-        ss.my_nodes = [n for n in testdata['nodes']]
-        ss.kind_of_nodes_filters = testdata['node_filters']
-        ss.my_edges = [e for e in testdata['edges']]
-        ss.kind_of_edges_filters = testdata['edge_filters']
-        ss.my_settings = testdata['settings']
-    
-    ss.my_filtered_nodes = ss.my_nodes
-    ss.my_filtered_edges = ss.my_edges
-
 # Customize nodes and edges features based on their type (or other attributes)
-# TODO: from config file ?
-# TODO: cache, calculate only once
+def customize_node(node):
+    kind = node['attributes']['nodetype']
+    if kind == 'A':
+        node['color'] = 'red'
+        node['size'] = 5
+        node['image'] = 'https://cdn.iconscout.com/icon/free/png-256/atom-1738376-1470282.png'
+        node['label'] = node.get('label', node['key'])
+
+    return node
+def customize_edge(edge):
+    kind = edge['attributes']['edgetype']
+    if kind == 'A':
+        edge['color'] = 'red'
+        edge['size'] = 1
+        edge['type'] = edge.get('type', 'arrow') # arrow, line
+        edge['label'] = edge.get('label', edge['key'])
+
+    return edge
+
 def customize_nodes_edges():
     for node in ss.my_nodes:
-        kind = node['attributes']['nodetype']
-        if kind == 'A':
-            node['color'] = 'red'
-            node['size'] = 5
-            node['image'] = 'https://cdn.iconscout.com/icon/free/png-256/atom-1738376-1470282.png'
-            node['label'] = node.get('label', node['key'])
-
+        customize_node(node)
     for edge in ss.my_edges:
-        kind = edge['attributes']['edgetype']
-        if kind == 'A':
-            edge['color'] = 'red'
-            edge['size'] = 1
-            edge['type'] = edge.get('type', 'arrow') # arrow, line
-            edge['label'] = edge.get('label', edge['key'])
+        customize_edge(edge)
 
 def addNode():
     nid = 'N' + str(len(ss.my_nodes)+1).rjust(3, '0')
@@ -117,7 +115,6 @@ def addNode():
 
     st.write(f"Add Node {nid}, connect to {rnid}")
     print(f"Add Node {nid}, connect to {rnid}")
-
 
     new_node = {
         "key": nid,
@@ -137,23 +134,73 @@ def addNode():
             "label": "New Edge"
         }
     }
+
+    new_node = customize_node(new_node)
+    new_edge = customize_edge(new_edge)
+
     ss.my_nodes.append(new_node)
     ss.my_edges.append(new_edge)
-    # ss.my_filtered_nodes.append(new_node)
-    # ss.my_filtered_edges.append(new_edge)
+    if ENABLE_FILTERS: 
+        if new_node['attributes']['nodetype'] in ss.node_filters:
+            ss.my_filtered_nodes.append(new_node)
+        if new_edge['attributes']['edgetype'] in ss.edge_filters:
+            ss.my_filtered_edges.append(new_edge)
     ss.positions[new_node['key']] = { "x": random.random(), "y": random.random() }
-    customize_nodes_edges()
-    # # Re-render the component with the new data
 
-    ss.sigmaid += 1
+def removeRandomNode():
+    if len(ss.my_nodes) > 0:
+        nid = random.choice(ss.my_nodes)['key']
+        st.write(f"Remove Node {nid} and its edges")
+        print(f"Remove Node {nid} and its edges")
+        ss.my_nodes = [n for n in ss.my_nodes if n['key'] != nid]
+        ss.my_filtered_nodes = [n for n in ss.my_filtered_nodes if n['key'] != nid]
+        ss.my_edges = [e for e in ss.my_edges if e['source'] != nid and e['target'] != nid]
+        ss.my_filtered_edges = [e for e in ss.my_filtered_edges if e['source'] != nid and e['target'] != nid]
+        if nid in ss.positions:
+            del ss.positions[nid]
 
-    st.write("Data was added. Reloading data...")
+def removeRandomEdge():
+    if len(ss.my_edges) > 0:    
+        eid = random.choice(ss.my_edges)['key']
+        st.write(f"Remove Edge {eid}")
+        print(f"Remove Edge {eid}")
+        ss.my_edges = [e for e in ss.my_edges if e['key'] != eid]
+        ss.my_filtered_edges = [e for e in ss.my_filtered_edges if e['key'] != eid]
 
-if 'my_nodes' not in ss or 'my_edges' not in ss:
-    load_data()
+# LOAD DATA, 'local data' or fallback 'test data' imports, only run once
+def load_or_reuse_data(force=False):
+    if force or not('my_nodes' in st.session_state and 'my_edges' in st.session_state):
+        data = None
+        try:
+            from local_data import localdata as data
+        except:
+            data = None
+            try:
+                from test_data import testdata as data
+            except:
+                data = None
+        if data is None:
+            ss.my_nodes = [n for n in data['nodes']]
+            ss.kind_of_nodes_filters = data['node_filters']
+            ss.my_edges = [e for e in data['edges']]
+            ss.kind_of_edges_filters = data['edge_filters']
+            ss.my_settings = data['settings']
+        else:
+            ss.my_nodes = [n for n in data['nodes']]
+            ss.kind_of_nodes_filters = data['node_filters']
+            ss.my_edges = [e for e in data['edges']]
+            ss.kind_of_edges_filters = data['edge_filters']
+            ss.my_settings = data['settings']
+        
+        for node in ss.my_nodes:
+            customize_node(node)
+        for edge in ss.my_edges:
+            customize_edge(edge)
 
-# ss.my_filtered_nodes = ss.my_nodes
-# ss.my_filtered_edges = ss.my_edges
+        ss.my_filtered_nodes = ss.my_nodes
+        ss.my_filtered_edges = ss.my_edges
+
+load_or_reuse_data()
 
 # PAGE LAYOUT
 
@@ -181,6 +228,21 @@ if EXPERIMENTAL_FLAG:
 
             if st.button("Add Node", key="add_node"):
                 addNode()
+                # Re-render the component with the new data
+                ss.sigmaid += 1
+                st.write("Nodes and edges were added. Reloading component ...")
+
+            if st.button("Remove Random Node", key="remove_node"):
+                removeRandomNode()
+                # Re-render the component with the new data
+                ss.sigmaid += 1
+                st.write("Node was removed. Reloading component ...")
+
+            if st.button("Remove Random Edge", key="remove_edge"):
+                removeRandomEdge()
+                # Re-render the component with the new data
+                ss.sigmaid += 1
+                st.write("Edge was removed. Reloading component ...")
 
             if st.button("Reset data", key="reset_data"):
                 ss.my_nodes = None
@@ -189,12 +251,11 @@ if EXPERIMENTAL_FLAG:
                 ss.kind_of_edges_filters = None
                 ss.my_settings = None
 
+                # Re-render the component with the new data
                 ss.sigmaid += 1
+                st.write("Data was added. Reloading component ...")
 
-                st.write("Data has been reset. Reloading data...")
-
-                load_data()
-                customize_nodes_edges()
+                load_or_reuse_data(force=True)
 
 with tab_filters:
 
@@ -232,7 +293,6 @@ with tab_filters:
                 st.write("Node filters:", ", ".join(ss.node_filters))
             else:
                 st.write("Node filters: None")
-
 
 with tab_customize:
 
@@ -328,7 +388,7 @@ if 'state' in ss.graph_state:
 
 if DEBUG:
 
-    if st.button("update sigma id"):
+    if st.button("update sigma id to refresh component"):
         ss.sigmaid += 1
         st.write(f"sigmaid updated to {ss.sigmaid}")
 
@@ -338,7 +398,7 @@ if DEBUG:
             pos['x'] = pos.get('x', 0) + random.random() * 5.0 - 2.5
             pos['y'] = pos.get('y', 0) + random.random() * 5.0 - 2.5
         st.write("Added random jitter to positions...")
-        st.write(ss.positions.values())
+        st.write(ss.positions.values()[:3])
         st.write("...")
 
     st.write("---")
@@ -346,8 +406,6 @@ if DEBUG:
     with st.expander("Details graph state (debug)"):
         st.write(f"vsigma id: {ss.sigmaid}")
         st.write(ss.graph_state)
-    with st.expander("Details imported graph data"):
-        st.write(testdata)
     with st.expander("Details actual graph data"):
         st.write("Positions:")
         st.write(ss.positions)
@@ -362,3 +420,13 @@ if DEBUG:
         st.write("Filtered Edges:")
         st.write(ss.my_filtered_edges)
 
+if PROFILE:
+    pr.disable()
+    s = StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats(10)
+    print(s.getvalue())
+    with st.expander("Profiling info"):
+        st.text(s.getvalue())
+    print("Ended profiling.")
