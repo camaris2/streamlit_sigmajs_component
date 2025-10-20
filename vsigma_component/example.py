@@ -1,7 +1,14 @@
-import json
 import random
 import streamlit as st
 from vsigma_component import vsigma_component
+from tools import (
+    list_nodes,
+    list_edges,
+    addNode,
+    removeRandomNode,
+    removeRandomEdge,
+    load_or_reuse_data,
+)
 
 
 # Default settings
@@ -58,147 +65,6 @@ if "edge_filters" not in ss:
         ss.edge_filters = []
 
 ss.graph_state = {} # holds the VSigma internal state data
-
-# Helper Functions
-
-list_nodes_html = '--'
-def list_nodes(state):
-    data = ss.graph_state["state"].get('lastselectedNodeData', {})
-    list_nodes_html = [
-        n['key'] + ' : ' + ', '.join(
-            [att + '=' + n['attributes'][att] for att in n['attributes']]
-        )
-        for n in ss.my_nodes if n['attributes']['nodetype']==data['nodetype']
-    ]
-    return list_nodes_html
-list_edges_html = '--'
-def list_edges(state):
-    data = ss.graph_state["state"].get('lastselectedEdgeData', {})
-    list_edges_html = [
-        n['key'] + ' : ' + ', '.join(
-            [att + '=' + n['attributes'][att] for att in n['attributes']]
-        )
-        for n in ss.my_edges if n['attributes']['edgetype']==data['edgetype']
-    ]
-    return list_edges_html
-
-# Customize nodes and edges features based on their type (or other attributes)
-def customize_node(node):
-    kind = node['attributes']['nodetype']
-    if kind == 'A':
-        node['color'] = 'red'
-        node['size'] = 5
-        node['image'] = 'https://cdn.iconscout.com/icon/free/png-256/atom-1738376-1470282.png'
-        node['label'] = node.get('label', node['key'])
-
-    return node
-def customize_edge(edge):
-    kind = edge['attributes']['edgetype']
-    if kind == 'A':
-        edge['color'] = 'red'
-        edge['size'] = 1
-        edge['type'] = edge.get('type', 'arrow') # arrow, line
-        edge['label'] = edge.get('label', edge['key'])
-
-    return edge
-
-def customize_nodes_edges():
-    for node in ss.my_nodes:
-        customize_node(node)
-    for edge in ss.my_edges:
-        customize_edge(edge)
-
-def addNode():
-    nid = 'N' + str(len(ss.my_nodes)+1).rjust(3, '0')
-    eid = 'R' + str(len(ss.my_edges)+1).rjust(3, '0')
-    rnid = 'N' + str(1+int(len(ss.my_nodes)*random.random())).rjust(3, '0')
-
-    st.write(f"Add Node {nid}, connect to {rnid}")
-    print(f"Add Node {nid}, connect to {rnid}")
-
-    new_node = {
-        "key": nid,
-        "attributes": {
-            "nodetype": "Person",
-            "label": "New Person",
-            "color": "blue",
-            "image": "https://icons.getbootstrap.com/assets/icons/person.svg",
-        }
-    }
-    new_edge = {
-        "key": eid,
-        "source": rnid,
-        "target": nid,
-        "attributes": {
-            "edgetype": "Person-Person",
-            "label": "New Edge"
-        }
-    }
-
-    new_node = customize_node(new_node)
-    new_edge = customize_edge(new_edge)
-
-    ss.my_nodes.append(new_node)
-    ss.my_edges.append(new_edge)
-    if ENABLE_FILTERS: 
-        if new_node['attributes']['nodetype'] in ss.node_filters:
-            ss.my_filtered_nodes.append(new_node)
-        if new_edge['attributes']['edgetype'] in ss.edge_filters:
-            ss.my_filtered_edges.append(new_edge)
-    ss.positions[new_node['key']] = { "x": random.random(), "y": random.random() }
-
-def removeRandomNode():
-    if len(ss.my_nodes) > 0:
-        nid = random.choice(ss.my_nodes)['key']
-        st.write(f"Remove Node {nid} and its edges")
-        print(f"Remove Node {nid} and its edges")
-        ss.my_nodes = [n for n in ss.my_nodes if n['key'] != nid]
-        ss.my_filtered_nodes = [n for n in ss.my_filtered_nodes if n['key'] != nid]
-        ss.my_edges = [e for e in ss.my_edges if e['source'] != nid and e['target'] != nid]
-        ss.my_filtered_edges = [e for e in ss.my_filtered_edges if e['source'] != nid and e['target'] != nid]
-        if nid in ss.positions:
-            del ss.positions[nid]
-
-def removeRandomEdge():
-    if len(ss.my_edges) > 0:    
-        eid = random.choice(ss.my_edges)['key']
-        st.write(f"Remove Edge {eid}")
-        print(f"Remove Edge {eid}")
-        ss.my_edges = [e for e in ss.my_edges if e['key'] != eid]
-        ss.my_filtered_edges = [e for e in ss.my_filtered_edges if e['key'] != eid]
-
-# LOAD DATA, 'local data' or fallback 'test data' imports, only run once
-def load_or_reuse_data(force=False):
-    if force or not('my_nodes' in st.session_state and 'my_edges' in st.session_state):
-        data = None
-        try:
-            from local_data import localdata as data
-        except:
-            data = None
-            try:
-                from test_data import testdata as data
-            except:
-                data = None
-        if data is None:
-            ss.my_nodes = [n for n in data['nodes']]
-            ss.kind_of_nodes_filters = data['node_filters']
-            ss.my_edges = [e for e in data['edges']]
-            ss.kind_of_edges_filters = data['edge_filters']
-            ss.my_settings = data['settings']
-        else:
-            ss.my_nodes = [n for n in data['nodes']]
-            ss.kind_of_nodes_filters = data['node_filters']
-            ss.my_edges = [e for e in data['edges']]
-            ss.kind_of_edges_filters = data['edge_filters']
-            ss.my_settings = data['settings']
-        
-        for node in ss.my_nodes:
-            customize_node(node)
-        for edge in ss.my_edges:
-            customize_edge(edge)
-
-        ss.my_filtered_nodes = ss.my_nodes
-        ss.my_filtered_edges = ss.my_edges
 
 load_or_reuse_data()
 

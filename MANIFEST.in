@@ -1,1 +1,2 @@
 recursive-include vsigma_component/vue_sigma/dist *
+include vsigma_component/tools.py
