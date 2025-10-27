@@ -3,14 +3,18 @@
     <div class="networkinfo">
       {{ state.nnodes }} Nodes - {{ state.nedges }} Edges
       <!-- <button id="save">💾</button> -->
-      <!-- <button id="load">Load</button>
-      <button id="refresh">⭮</button> -->
+      <!-- <button id="load">⮪</button> -->
+      <!-- <button id="refresh">⭮</button> -->
     </div>
     <div>
       <button id="start">▶</button>
       <button id="stop">⏹</button>
       <button id="save">💾</button>
-      <button id="reset">⭮</button>&nbsp;
+      <!-- <button id="load">🡹</button> -->
+      <!-- <button id="reset">⭮</button> -->
+      &nbsp;
+      <button id="autofix">Autofix ({{ layout_autofix  }})</button>
+      &nbsp;
       <span id="search">
       <input type="search" id="search-input" list="suggestions" placeholder="Search node...">
       <datalist id="suggestions">
@@ -83,6 +87,10 @@ button + button {
   let myLayout = null
   let log_debug_info = false
   let deep_debug = true
+
+  let layout_chooser = 1 // 1: ForceSupervisor, 2: FA2Layout
+  let layout_autostart = false
+  let layout_autofix = true
 
   let refreshCounter = ref(0)
 
@@ -197,13 +205,22 @@ button + button {
       circlepack.assign(graph);
     }
 
-    // // Force Atlas Layout
-    // const settings = forceAtlas2.inferSettings(graph);
-    // myLayout = new FA2Layout(graph, { settings });
-
-    // Create the spring layout and start it
-    myLayout = new ForceSupervisor(graph, { isNodeFixed: (_, attr) => attr.highlighted });
-    myLayout.start();
+    if (layout_chooser == 2) {
+      // Force Atlas Layout
+      const settings = forceAtlas2.inferSettings(graph);
+      myLayout = new FA2Layout(graph, { settings });
+      if (!layout_autostart) {
+        myLayout.stop();
+      }
+    } else if (layout_chooser == 1) {
+      // Create the spring layout and start it
+      myLayout = new ForceSupervisor(graph, { isNodeFixed: (_, attr) => attr.highlighted });
+      if (layout_autostart) {
+        myLayout.start();
+      } else {
+        myLayout.stop();
+      }
+    }
 
     state.positions = collectLayout(graph);
 
@@ -237,10 +254,12 @@ button + button {
     // Action Buttons
     const startBtn = document.getElementById("start");
     const stopBtn = document.getElementById("stop");
-    const resetBtn = document.getElementById("reset");
+    // const resetBtn = document.getElementById("reset");
     // const refreshBtn = document.getElementById("refresh");
     const saveBtn = document.getElementById("save");
     // const loadBtn = document.getElementById("load");
+    const autofixBtn = document.getElementById("autofix");
+
     startBtn.addEventListener("click", () => {
       if(log_debug_info) { console.log("arrange positions") }
       myLayout.start();
@@ -251,13 +270,13 @@ button + button {
       state.positions = collectLayout(graph);
       syncStreamlit();
     });
-    resetBtn.addEventListener("click", () => {
-      if(deep_debug) { console.log("reset positions") }
-      if (myLayout.isRunning) myLayout.stop();
-      circlepack.assign(graph);
-      render.refresh();
-      syncStreamlit();
-    });
+    // resetBtn.addEventListener("click", () => {
+    //   if(deep_debug) { console.log("reset positions") }
+    //   if (myLayout.isRunning) myLayout.stop();
+    //   circlepack.assign(graph);
+    //   render.refresh();
+    //   syncStreamlit();
+    // });
     saveBtn.addEventListener("click", () => {
       if(deep_debug) { console.log("save positions") }
       if (myLayout.isRunning) myLayout.stop();
@@ -273,6 +292,10 @@ button + button {
     // refreshBtn.addEventListener("click", () => {
     //   update_positions();
     // });
+    autofixBtn.addEventListener("click", () => {
+      if(deep_debug) { console.log("toggle fix dragged nodes") }
+      layout_autofix = !layout_autofix;
+    });
 
     // Network dimensions
     state.nnodes = graph.nodes().length
@@ -400,7 +423,10 @@ button + button {
     const handleMouseUp = () => {
       // On mouse up, we reset the dragging mode
       if (draggedNode) {
-        graph.removeNodeAttribute(draggedNode, "highlighted");
+        // graph.removeNodeAttribute(draggedNode, "highlighted");
+        if (!layout_autofix) {
+          graph.removeNodeAttribute(draggedNode, "highlighted");
+        }
       }
       isDragging = false;
       draggedNode = null;
