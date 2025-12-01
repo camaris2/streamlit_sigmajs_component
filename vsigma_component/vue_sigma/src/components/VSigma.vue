@@ -9,11 +9,11 @@
     <div>
       <button id="start">▶</button>
       <button id="stop">⏹</button>
-      <button id="save">💾</button>
+      <!-- <button id="save">💾</button> -->
       <!-- <button id="load">🡹</button> -->
       <!-- <button id="reset">⭮</button> -->
-      &nbsp;
-      <button id="autofix">Autofix ({{ layout_autofix  }})</button>
+      <!-- &nbsp; -->
+      <!-- <button id="autofix">Autofix ({{ layout_autofix  }})</button> -->
       &nbsp;
       <span id="search">
       <input type="search" id="search-input" list="suggestions" placeholder="Search node...">
@@ -90,7 +90,7 @@ button + button {
 
   let layout_chooser = 1 // 1: ForceSupervisor, 2: FA2Layout
   let layout_autostart = false
-  let layout_autofix = true
+  // let layout_autofix = true
 
   let refreshCounter = ref(0)
 
@@ -256,9 +256,9 @@ button + button {
     const stopBtn = document.getElementById("stop");
     // const resetBtn = document.getElementById("reset");
     // const refreshBtn = document.getElementById("refresh");
-    const saveBtn = document.getElementById("save");
+    // const saveBtn = document.getElementById("save");
     // const loadBtn = document.getElementById("load");
-    const autofixBtn = document.getElementById("autofix");
+    // const autofixBtn = document.getElementById("autofix");
 
     startBtn.addEventListener("click", () => {
       if(log_debug_info) { console.log("arrange positions") }
@@ -277,12 +277,12 @@ button + button {
     //   render.refresh();
     //   syncStreamlit();
     // });
-    saveBtn.addEventListener("click", () => {
-      if(deep_debug) { console.log("save positions") }
-      if (myLayout.isRunning) myLayout.stop();
-      state.positions = collectLayout(graph);
-      syncStreamlit();
-    });
+    // saveBtn.addEventListener("click", () => {
+    //   if(deep_debug) { console.log("save positions") }
+    //   if (myLayout.isRunning) myLayout.stop();
+    //   state.positions = collectLayout(graph);
+    //   syncStreamlit();
+    // });
     // loadBtn.addEventListener("click", () => {
     //   if(log_debug_info) { console.log("load positions") }
     //   assignLayout(graph, props.args.positions);
@@ -292,10 +292,10 @@ button + button {
     // refreshBtn.addEventListener("click", () => {
     //   update_positions();
     // });
-    autofixBtn.addEventListener("click", () => {
-      if(deep_debug) { console.log("toggle fix dragged nodes") }
-      layout_autofix = !layout_autofix;
-    });
+    // autofixBtn.addEventListener("click", () => {
+    //   if(deep_debug) { console.log("toggle fix dragged nodes") }
+    //   layout_autofix = !layout_autofix;
+    // });
 
     // Network dimensions
     state.nnodes = graph.nodes().length
@@ -327,13 +327,15 @@ button + button {
           state.lastselectedNode = suggestions[0].id;
           state.lastselectedNodeData = graph.getNodeAttributes(state.lastselectedNode);
           state.suggestions = undefined;
-          setHoveredNode(state.selectedNode);
+          graph.setNodeAttribute(state.selectedNode, "highlighted", true);
 
           // Move the camera to center it on the selected node:
           const nodePosition = render.getNodeDisplayData(state.selectedNode)
           render.getCamera().animate(nodePosition, {
             duration: 500,
           })
+          setHoveredNode(state.selectedNode);  // NOK: error
+
         }
         // Else, we display the suggestions list:
         else {
@@ -355,11 +357,11 @@ button + button {
 
     function setHoveredNode(node) {
       if (node) {
-        state.hoveredNode = node.node
-        state.hoveredNodeLabel = graph.getNodeAttribute(node.node, 'label')
+        state.hoveredNode = node
+        state.hoveredNodeLabel = graph.getNodeAttribute(node, 'label')
         // state.hoveredEdge = undefined
         // state.hoveredEdgeLabel = undefined
-        state.hoveredNeighbors = graph.neighbors(node.node) // new Set(graph.neighbors(node))
+        state.hoveredNeighbors = graph.neighbors(node) // new Set(graph.neighbors(node))
       }
 
       if (!node) {
@@ -423,10 +425,10 @@ button + button {
     const handleMouseUp = () => {
       // On mouse up, we reset the dragging mode
       if (draggedNode) {
-        // graph.removeNodeAttribute(draggedNode, "highlighted");
-        if (!layout_autofix) {
-          graph.removeNodeAttribute(draggedNode, "highlighted");
-        }
+        graph.removeNodeAttribute(draggedNode, "highlighted");
+        // if (!layout_autofix) {
+        //   graph.removeNodeAttribute(draggedNode, "highlighted");
+        // }
       }
       isDragging = false;
       draggedNode = null;
@@ -450,7 +452,7 @@ button + button {
 
     render.on("enterNode", (event) => {
       if(log_debug_info) { console.log("enterNode", event.node) }
-      setHoveredNode(event)
+      setHoveredNode(event.node)
     })
     render.on("leaveNode", (event) => {
       if(log_debug_info) { console.log("leaveNode") }
@@ -570,7 +572,11 @@ button + button {
       const res = { ...data };
 
       if (node === state.hoveredNode) {
-        res.size *= 1.5
+        res.size *= 2.0
+        res.forceLabel = true
+      } else {
+        res.size = 10
+        res.label = ""
       }
 
       if(state.hoveredNeighbors) {
@@ -600,12 +606,16 @@ button + button {
       } else if (state.suggestions) {
         if (Array.from(state.suggestions.values()).length>0) {
           if (Array.from(state.suggestions.entries())[0][0]==node) {
-            res.size *=1.5
+            res.highlighted = true;
+            res.size *=2.0
             res.forceLabel = true;
           } else {
+            res.highlighted = true;
             res.label = ""
           }
         }
+      } else {
+        res.highlighted = false;
       }
 
       return res;
@@ -621,6 +631,8 @@ button + button {
         res.color = "#aaaaff"
         res.size *= 2
         res.forceLabel = true
+      } else {
+        res.label = ""
       }
 
       if (state.hoveredNode) {
@@ -638,7 +650,7 @@ button + button {
           (!Array.from(state.suggestions.values()).includes(graph.source(edge)) || !Array.from(state.suggestions.values()).includes(graph.target(edge)))
         ) {
           res.color = "#cccccc"
-          res.label = ""
+          res.forceLabel = true
         }
       }
 
